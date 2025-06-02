@@ -1,0 +1,61 @@
+on script load:
+	loadPlayerHead("drone", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGUzZWU3YjI3Nzk4YTJjZjNlNjhkMzZlMzVhMTVhMmU1M2IyNjk3NmRjYzI4ZTE5MDM1NDFjYzlmYjA3ZCJ9fX0=")
+	set_stat("drone", "block", head("drone"))
+	set_stat("drone", "scale", 0.9)
+	set_stat("drone", "health", 20)
+	set_stat("drone", "damage", 1)
+	set_stat("drone", "speed", 0.4)
+	set_stat("drone", "attack_cooldown", 40)
+	set_stat("drone", "attack_range", 8)
+	set_stat("drone", "movement_cooldown", 5)
+	create a new custom dust particle with:
+		count: 0
+		force: true
+		data: dustOption(gray, 0.5)
+	set_stat("drone", "particle", last created particle)
+
+function drone_attack(p: player, enemy: entity, target: entity):
+	set {_between} to vector between {_enemy} and {_target}
+	set {_angle} to atan2(z of {_between}, x of {_between}) - 45
+
+	sound({_p}, "entity.breeze.inhale", 0.1, 1.75)
+
+	wait 3 ticks
+
+	if {_enemy} is not alive:
+		stop
+
+	sound({_p}, "entity.player.attack.sweep", 0.25, 1.25) 
+
+	set {_particle} to get_stat("drone", "particle")
+
+	if distance between {_target} and {_enemy} ~ (normalized {_between} * 0.4) < 0.7:
+		damage_player({_p})
+	
+	# dash
+	set {_off} to random vector
+	set y of {_off} to 0
+	set {_offset} to vector between {_enemy} and {_target} +  ({_off} * 2)
+
+	move({_enemy}, (normalized {_between}) * (1 + metadata "speed" of {_enemy}))
+
+	loop 3 times:
+		
+		set {_swipe} to an arc with radius get_radius(loop-value) and cutoff angle of 90 degrees
+
+		set particle of {_swipe} to {_particle}
+
+		set particle count of {_swipe} to 45
+		rotate shape {_swipe} around y-axis by {_angle}
+		
+		draw shape {_swipe} at {_enemy}
+
+local function get_radius(x: number):: number:
+	# Changed from 0.25 - (0.25 * loop-value - 1)
+	# Reduced mathematics, YouCanDream sucks.
+	return 1.25 - 0.25 * {_x}
+
+function drone_movement(p: player, enemy: entity, target: entity, next_node: location):
+	set {_velocity} to vector between {_enemy} and {_next_node}
+	set vector length of {_velocity} to get_speed({_enemy})
+	move({_enemy}, {_velocity})

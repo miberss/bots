@@ -1,0 +1,11 @@
+function particle(loc: location, particle_type: particle = crit, using: object = {_}, amount: integer = 0, delta: vector = vector(0, 0, 0), extra: number = 0, force: boolean = false):
+	if {_using} is set:
+		if {_force} is true:
+			make {_amount} of {_particle_type} using {_using} at {_loc} with delta {_delta} with extra {_extra} with force
+		else:
+			make {_amount} of {_particle_type} using {_using} at {_loc} with delta {_delta} with extra {_extra}
+	else:
+		if {_force} is true:
+			make {_amount} of {_particle_type} at {_loc} with delta {_delta} with extra {_extra} with force
+		else:
+			make {_amount} of {_particle_type} at {_loc} with delta {_delta} with extra {_extra}

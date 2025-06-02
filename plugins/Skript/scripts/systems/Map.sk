@@ -1,0 +1,91 @@
+function get_next_map() :: integer:
+    loop 10 times:
+        if {-map::taken::%loop-value%} is set:
+            continue
+        return loop-value
+
+function setup_game(p: player):
+    suppress variable save warnings
+    set {_id} to get_next_map()
+    set {-timer::%{_p}%} to 150
+    set {-map::taken::%{_id}%} to {_p}
+    set {_center} to location(1000 * {_id}, 0, 3)
+    generate_void({_center}, {_id})
+    teleport {_p} to block at {_center}
+    wait 1 tick
+    set metadata "map_id" of {_p} to {_id}
+    set metadata "start" of {_p} to now
+
+    spawn_player({_p})
+    spawn_map_batteries({_id})
+    spawn_map_npcs({_id})
+    loop {-enemy::%{_p}%::*}:
+        kill_enemy({_p}, loop-value)
+    run 5 ticks later:
+        play_music({_p})
+    set {_npcs::*} to {-map_npcs::%{_id}%::*}
+    set {_player_object} to {-char::%{_p}%::entity}
+    set {_k} to keybind component from "key.swapOffhand"
+    set color format of {_k} to rgb(255, 209, 49)
+    while metadata "map_id" of {_p} is set:
+        #npc loop
+        wait 1 tick
+        sort {_npcs::*} by distance between {_player_object} and input
+        set glowing of {_npcs::*} to false
+        set {_closest} to {_npcs::1}
+        delete metadata "closestNPC" of {_p}
+        send action bar "" to {_p}
+        if distance between {_player_object} and {_closest} < 4:
+            set metadata "closestNPC" of {_p} to {_closest}
+            send action bar components merge components ("<#474056>Press <#FFD131>[", {_k}, "<#FFD131>]<#474056> to interact.") to {_p}
+            set glowing of {_closest} to true
+
+on swap hand items:
+    if metadata "map_id" of player is not set:
+        stop
+
+    set {_npc} to metadata "closestNPC" of player
+    if {_npc} is not set:
+        stop
+    set {_last_spoke} to metadata "last_spoke" of {_npc}
+    set {_difference} to (difference between now and {_last_spoke}) ? 20 seconds
+    if {_difference} > 10 seconds:
+        set {_pos} to location of {_npc}
+        set {_name} to metadata "name" of {_npc}
+        play_npc_dialogue({_pos}, {_name})
+        set metadata "last_spoke" of {_npc} to now
+
+function delete_game(p: player, win: boolean):
+    stop all sounds for {_p}
+    set {_id} to metadata "map_id" of {_p}
+    set {_time} to difference between now and metadata "start" of {_p}
+    if {_time} > ({player_data::longest_survived::%{_p}%} ? 0 seconds):
+        set {player_data::longest_survived::%{_p}%} to {_time}
+    set {_time} to time_format(timespan(round(seconds of {_time}), seconds))
+    delete {-map::taken::%{_id}%}
+    delete_player({_p})
+    loop {-map_void::%{_id}%::*}:
+        kill loop-value
+    delete {-map_void::%{_id}%::*}
+    loop {-map_npcs::%{_id}%::*}:
+        kill loop-value
+    loop {-enemy::%{_p}%::*}:
+        kill_enemy({_p}, loop-value)
+    delete {-map_npcs::%{_id}%::*}
+    delete metadata "map_id" of {_p}
+    delete metadata "start" of {_p}
+    delete {player_data::current_wave::%{_p}%}
+    loop all players:
+        updateScoreboard(loop-value)
+    
+    delete {-wave::%{_p}%}
+    wait 1 tick
+    player_menu({_p})
+    if {_win} is true:
+        send "<#B9C6AE>&lYOU ESCAPED! &8| <#757083>Time taken: <#8A95A5>%{_time}%" to {_p}
+    else:
+        send "<#7a4242>&lYOU WERE KILLED. &8| <#757083>Run lasted for: <#8A95A5>%{_time}%" to {_p}
+
+function get_map_center(p: player) :: location:
+    set {_id} to metadata "map_id" of {_p}
+    return location({_id}*1000, 0, 3)

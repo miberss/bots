@@ -1,0 +1,30 @@
+on script load:
+	create a new custom dust_color_transition particle with:
+		count: 0
+		velocity: inwards
+		extra: 0.5
+		force: true
+		data: dustTransition(rgb(245, 99, 99),rgb(247, 212, 58), 1.5)
+	set {-destroy_particle::1} to last created particle
+
+function kill_enemy(p: player, enemy: entity):
+	delete {-enemy::%{_p}%::%{_enemy}%}
+	shake_camera({_p}, rnd(1, 2))
+	sound({_p}, "block.iron_door.close", 0.3, 1.2)
+	sound({_p}, "entity.iron_golem.hurt", 0.1, 1.5)
+	sound({_p}, "block.iron_door.close", 0.1, 1.7)
+	set {_location} to {_enemy}'s location
+	kill {_enemy}
+	loop 10 times:
+		set {_offset} to random vector * 0.3
+		set {_sphere} to sphere with radius rnd(0.4,0.6) * 1 + (loop-counter / 10)
+		draw the shape {_sphere} at {_location} ~ {_offset}:
+			set event-shape's particle count to 20
+			set event-shape's particle to {-destroy_particle::1}
+		particle({_location}, item, copper ingot, 20, vector(0.3, 0.3, 0.3), 0.1)
+		particle({_location}, item, redstone, 20, vector(0.3, 0.3, 0.3), 0.1)
+		# set particle of {_sphere} to s
+		wait 1 tick
+	
+	
+	

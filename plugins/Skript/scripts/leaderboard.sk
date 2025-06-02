@@ -1,0 +1,38 @@
+function reloadLeaderboard():
+    set {_e} to {leaderboard} parsed as an entity
+    set {_sorted::*} to sorted indices of {player_data::highest_wave::*} in descending order
+    set {_text} to "<#B9C6AE>&l&nHIGHEST WAVE"
+    loop 10 times:
+        set {_p} to {_sorted::%loop-value%} ? "Nobody"
+        if {_p} is not "Nobody":
+            set {_val} to {player_data::highest_wave::%{_p}%}
+            set {_p} to offlineplayer({_p})
+        else:
+            set {_val} to "None"
+        add "%nl%<#B9C6AE>#%loop-value% <#757083>%{_p}% <#B9C6AE>%{_val}%" to {_text}
+    set display text of {_e} to {_text}
+
+every minute:
+    reloadLeaderboard()
+
+function updateScoreboard(p: player):
+    clear {_p}'s fastboard
+    set title of {_p}'s fastboard to "     <#757083>&l&nBOTS&r       "
+    set line 1 of {_p}'s fastboard to " "
+    loop all players:
+        set {_val::%loop-value%} to {player_data::current_wave::%loop-value%}
+    set {_sorted::*} to sorted indices of {_val::*} in descending order
+    set line 2 of {_p}'s fastboard to "<#B9C6AE>&lHIGHEST WAVE" if size of {_val::*} > 0 else "<#B9C6AE>&lNO ONE PLAYING"
+    loop size of {_sorted::*} times:
+        add 1 to {_count}
+        set {_lp} to player({_sorted::%loop-value%})
+        set {_color} to "<#B9C6AE>" if {_lp} is not {_p} else "<#8A95A5>"
+        set {_val} to {_val::%{_lp}%}
+        set line (2 + {_count}) of {_p}'s fastboard to "%{_color}%#%loop-value% <#757083>%{_lp}% %{_color}%%{_val}%"
+    set line (3 + {_count}) of {_p}'s fastboard to " "
+    set line (4 + {_count}) of {_p}'s fastboard to "<#c4c4c4>&obots.minekeep.gg"
+
+command /toggle_scoreboard:
+    trigger:
+        toggle player's fastboard
+        send sm("success", "Toggled your scoreboard.")

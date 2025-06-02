@@ -1,0 +1,93 @@
+
+function update_enemy(p: player, enemy: entity):
+	# broadcast sm("info", "enemy_update | {1} | {2}", ({_enemy}'s location, {_target_pos}))
+	if {_enemy} is not alive:
+		delete {_enemy}
+
+	set {_is_fall} to {_enemy}'s location 
+	set y-coord of {_is_fall} to -5
+	if block at {_is_fall} is blackstone:
+		recycle_enemy({_p}, {_enemy})
+
+	set {_target} to {-char::%{_p}%::entity}
+
+	set {_target_pos} to metadata "feet" of {_p}
+
+	{_enemy}.setRotation(towards({_enemy}, {_target_pos}), 0)
+
+	add 1 to (metadata "attack_cooldown" of {_enemy})
+	add 1 to (metadata "movement_cooldown" of {_enemy})
+	add 1 to (metadata "alive" of {_enemy})
+
+	set {_between} to vector between {_enemy} and {_target_pos}
+	set {_distance} to vector length of {_between}
+
+	if metadata "best_distance" of {_p} ? {-char::%{_p}%::range} > {_distance}:
+		set metadata "best_distance" of {_p} to {_distance}
+		set metadata "closest_enemy" of {_p} to {_enemy}
+
+	if ({_distance} < 1):
+		damage_player({_p})
+		stop
+
+	set {_type} to get_type({_enemy})
+
+	if (metadata "movement_cooldown" of {_enemy}) >= get_stat({_type}, "movement_cooldown"):
+
+		# Offscreen check to use less resources.
+		if ({_distance} > 20):
+			# print(sm("info", "Running offscreen... distance : [1]", round({_distance}, 1)))
+			
+			set {_velocity} to {_between}
+
+			set (vector length of {_velocity}) to metadata "speed" of {_enemy} + (({_distance} / 10) ^ 1.5)
+			set y of {_velocity} to 0
+			move({_enemy}, {_velocity})
+			stop
+
+		if is_within({_enemy}, {_target}) = true:
+			if is_off_cooldown({_enemy}) = true:
+				run_attack({_p}, {_enemy}, {_target})
+				stop
+
+		set {_path::*} to (find_path({_enemy}, {_target_pos}))
+		
+		switch {_type}:
+			case "drone"  -> drone_movement({_p}, {_enemy}, {_target}, {_path::1})
+			case "archer" -> archer_movement({_p}, {_enemy}, {_target}, {_path::1})
+			case "hopper" -> hopper_movement({_p}, {_enemy}, {_target}, {_path::2} ? block at location of {_target})
+		
+		set (metadata "movement_cooldown" of {_enemy}) to 0
+
+function recycle_enemy(p: player, enemy: entity):
+	teleport {_enemy} to get_around({_p})
+
+function run_attack(p: player, enemy: entity, target: entity):
+	reset_cooldown({_enemy})
+	
+	set {_type} to get_type({_enemy})
+	# broadcast sm("info", "(1)_attack : [1] -> [2]", ({_type}, {_p}))
+
+	switch {_type}:
+		case "drone" -> drone_attack({_p}, {_enemy}, {_target})
+		case "archer" -> archer_attack({_p}, {_enemy}, {_target})
+
+function get_speed(enemy: entity) :: number:
+	return (metadata "speed" of {_enemy}) + (0.001 * metadata "alive" of {_enemy})
+
+function get_cooldown(enemy: entity) :: integer:
+	return metadata "attack_cooldown" of {_enemy}
+
+function reset_cooldown(enemy: entity):
+	set metadata "attack_cooldown" of {_enemy} to 0 + rndi(-5, 5)
+
+function get_type(enemy: entity) :: string:
+	return metadata "type" of {_enemy}
+
+function is_within(enemy: entity, pos: location) :: boolean:
+	set {_type} to get_type({_enemy})
+	return whether (distance between {_enemy} and {_pos}) < get_stat({_type}, "attack_range")
+
+function is_off_cooldown(enemy: entity) :: boolean:
+	set {_type} to get_type({_enemy})
+	return whether (get_cooldown({_enemy})) > get_stat({_type}, "attack_cooldown")

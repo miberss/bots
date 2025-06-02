@@ -1,0 +1,42 @@
+using for loops
+
+every tick:
+	add 1 to {-time}
+
+	for {_p} in (all players):
+
+		update_player({_p})
+
+	loop {-batteries::*}:
+		if loop-value is not alive:
+			remove loop-value from {-batteries::*}
+		battery_movement(loop-value)
+
+function update_player(p: player):
+	if vehicle of {_p} is set:
+		if metadata "state" of {_p} = "falling":
+			stop
+		if metadata "game_state" of {_p} != "playing":
+			stop
+		add 1 to {-timer::%{_p}%}
+		if {-timer::%{_p}%} >= 300 + ({-wave::%{_p}%} * 10):
+			set {-timer::%{_p}%} to 0
+			add 1 to {-wave::%{_p}%}
+			send sm("info", "Wave [1]", {-wave::%{_p}%}) to {_p}
+			if {-wave::%{_p}%} = 20:
+				delete_game({_p}, true)
+			create_wave({_p}, {-wave::%{_p}%})
+		
+		handle_movement({_p})
+
+		set health of {_p} to {-char::%{_p}%::hp}
+		set max health of {_p} to {-char::%{_p}%::hp}
+		remove 1 from (metadata "iframes" of {_p})
+		delete metadata "closest_enemy" of {_p}
+		delete metadata "best_distance" of {_p}
+
+		run_atmosphere({_p}, {-atmosphere})
+		for {_enemy} in {-enemy::%{_p}%::*}:
+			update_enemy({_p}, {_enemy})
+		
+		run_shoot({_p})

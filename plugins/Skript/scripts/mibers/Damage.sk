@@ -1,0 +1,20 @@
+function damage_player(p: player):
+	if metadata "iframes" of {_p} >= 0:
+		stop
+	set metadata "iframes" of {_p} to 10
+
+	remove 1 from {-char::%{_p}%::hp}
+	set {_kb} to random vector * 3
+	set y of {_kb} to 0
+	add {_kb} to {-char::%{_p}%::velocity} 
+	shake_camera({_p}, 20, 10)
+	sound({_p}, "block.iron_door.close", 1, 0.2)
+	sound({_p}, "entity.iron_golem.hurt", 0.4, 0.5)
+	sound({_p}, "block.iron_door.close", 1, 0.7)
+
+	if {-char::%{_p}%::hp} <= 0:
+		set metadata "game_state" of {_p} to "menu"
+		delete_player({_p})
+		set {_p}'s gamemode to creative
+		delete_game({_p}, false)
+	

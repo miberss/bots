@@ -1,0 +1,45 @@
+on script load:
+	set {-camera_y} to 9
+	set {-camera_min} to 5
+	set {-camera_max} to 200
+	set {-camera_yaw} to -45
+	set {-camera_pitch} to 82
+	set {-camera_yaw_max} to -30
+	set {-camera_pitch_max} to 97
+	set {-camera_yaw_min} to -60
+	set {-camera_pitch_min} to 67
+
+function normal_camera_y():: number:
+	return {-camera_y}
+
+function mod_camera_y(p: player):: number:
+	return {-char::%{_p}%::camera_y}
+
+function move_camera(p: player, by: number):
+	add {_by} to {-char::%{_p}%::camera_y}
+
+function camera_y(p: player):: number:
+	return clamp(normal_camera_y() + mod_camera_y({_p}), {-camera_min}, {-camera_max})
+
+function camera_rotation(p: player):: numbers:
+	set {_yaw} to clamp({-camera_yaw} + {-char::%{_p}%::yaw}, {-camera_yaw_min}, {-camera_yaw_max})
+	set {_pitch} to clamp({-camera_pitch} + {-char::%{_p}%::pitch}, {-camera_pitch_min}, {-camera_pitch_max})
+	return {_yaw}, {_pitch}
+
+function update_camera(p: player):
+	move_camera({_p}, mod_camera_y({_p}) / -5)
+	change_rotation({_p}, {-char::%{_p}%::yaw} / -5, {-char::%{_p}%::pitch} / -5)
+
+function change_rotation(p: player, yaw: number, pitch: number):
+	add {_yaw} to {-char::%{_p}%::yaw}
+	add {_pitch} to {-char::%{_p}%::pitch}
+
+function shake_camera(p: player, factor: number, min: number = {_}):
+
+	set {_yaw} to max(rnd(-2, 2) * {_factor}, {_min}) * random_sign()
+	set {_pitch} to max(rnd(-1, 1) * {_factor}, {_min}) * random_sign()
+
+	change_rotation({_p}, {_yaw}, {_pitch})
+
+local function random_sign():: integer:
+	return 1 or -1

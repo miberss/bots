@@ -1,0 +1,52 @@
+using for loops
+
+function set_stat(type: string, field: string, value: object):
+	set {-enemy_stat::%{_type}%::%{_field}%} to {_value}
+
+function get_stat(type: string, field: string):: object:
+	return {-enemy_stat::%{_type}%::%{_field}%}
+
+function spawn_enemy(p: player, type: string, pos: location):
+	set {_scale} to get_stat({_type}, "scale") * rnd(0.8, 1.2)
+	set {_scale} to vector({_scale}, {_scale}, {_scale})
+
+	spawn item display at {_pos}:
+		set display scale of entity to {_scale}
+		set display item of entity to get_stat({_type}, "block")
+		set teleport duration of entity to 1 tick
+		entity.setPersistent(false)
+		rotate entity by x 180, y 0, z 0
+		set {_enemy} to entity
+
+	set metadata "hp" of {_enemy} to 5
+	set metadata "speed" of {_enemy} to get_stat({_type}, "speed") + rnd(-0.04, 0.04)
+	set metadata "type" of {_enemy} to {_type}
+	set metadata "target" of {_enemy} to {_p}
+	set metadata "attack_cooldown" of {_enemy} to 0
+	set metadata "movement_cooldown" of {_enemy} to 0
+	set metadata "alive" of {_enemy} to 0
+	if {_type} = "hopper":
+		set metadata "jump" of {_enemy} to 2 + rnd(-0.5, 0.5)
+
+	set {-enemy::%{_p}%::%{_enemy}%} to {_enemy}
+
+function spawn_wave_around(p: player, types: string):
+	set {_types::*} to {_types} split at "|"
+	loop {_types::*}:
+		set {_pos} to get_around({_p})
+		spawn_enemy({_p}, loop-value, {_pos})
+		wait 10 ticks
+
+function get_around(p: player):: location:
+	set {_offset} to normalized random vector 
+	set y of {_offset} to 0
+	set vector length of {_offset} to vector length of {_offset} * rnd(20, 60)
+	return (metadata "feet" of {_p}) ~ {_offset}
+
+command /enemy <type:string> <count:integer>:
+	permission: op
+	trigger:
+		loop {_count} times:
+			set {_offset} to random vector * 5
+			set y of {_offset} to -0.5
+			spawn_enemy(player, {_type}, location of block at {-char::%player%::entity} ~ {_offset})

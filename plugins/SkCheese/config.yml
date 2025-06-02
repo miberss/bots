@@ -1,0 +1,17 @@
+syntaxes:
+  bit-operations: true
+  cond-all-true: true
+  reverted-conditions: true
+  eval: true
+  binary-and-hex-numbers: true
+  dynamic-parsing: true
+  reverted-booleans: true
+  variable-tree: true
+  labels: true
+  pairs: true
+  run-function-section: true
+  multi-line-strings: true
+  fuck-skript-up: true
+  switch-cases: true
+  futures: true
+  wrapped-lists: true

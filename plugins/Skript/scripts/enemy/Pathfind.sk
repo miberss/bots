@@ -1,0 +1,13 @@
+import:
+	org.mibers.astar.AStarPathfinder
+
+function move(entity: entity, vec: vector):
+	teleport {_entity} to ({_entity} ~ {_vec})
+
+function find_path(l: location, l2: location) :: locations:
+	set {_l} to location of block at {_l}
+	set {_l2} to location of block at {_l2}
+	set {_ret} to AStarPathfinder.findPath({_l}, {_l2}, 1.0)
+	if {_ret} is null:
+		stop
+	return ...{_ret}

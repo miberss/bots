@@ -1,0 +1,32 @@
+on script load:
+    clear {-time::*}
+    set {-time::d} to 1000 * 60 * 60 * 24
+    set {-time::h} to 1000 * 60 * 60
+    set {-time::m} to 1000 * 60
+    set {-time::s} to 1000
+
+function time_format(input: timespan) :: string:
+    set {_millis} to {_input}.getMilliSeconds()
+    set {_ret::*} to toString({_millis}) split by "s"
+    return {_ret::1}+"s"
+
+
+function toString(millis: number) :: string:
+    set {_time-index::*} to indices of {-time::*}
+    loop {-time::*}:
+        add 1 to {_count}
+        set {_previous} to {-time::%{_time-index::%{_count} - 1%}%}
+        set {_next} to {-time::%{_time-index::%{_count} + 1%}%}
+        if {_millis} >= loop-value:
+            set {_second} to mod({_millis}, loop-value) / {_next}
+            if {_second} isn't 0: # bad style but who cares...
+                set {_first} to withAmount(floor({_millis} / loop-value), loop-index)
+                set {_third} to withAmount({_second}, {_time-index::%{_count} + 1%})
+                return "%{_first}% %{_third}%"
+            else:
+                return withAmount(({_millis} / loop-value), loop-index)
+    set {_last} to last element out of {-time::*}
+    return withAmount(({_millis} / {_last}), last element out of {_time-index::*})
+
+function withAmount(amount: number, p: string) :: string:
+    return "%{_amount}%%{_p}%"

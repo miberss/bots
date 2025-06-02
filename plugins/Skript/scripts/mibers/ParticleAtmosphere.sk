@@ -1,0 +1,87 @@
+using for loops
+
+struct atmosphere:
+	density: number = 0.1
+	particles: structs
+
+struct particle:
+	chance: number = 1
+	particles: customparticles
+
+function create_particle(particle: customparticles, chance: number):: struct:
+	set {_part} to particle struct
+	set {_part} -> particles to {_particle::*}
+	set {_part} -> chance to {_chance}
+	return {_part}
+
+on script load:
+
+	create new custom falling_dust:
+		count: 2
+		extra: 0.5
+		data: spruce wood
+	set {_dust::1} to create_particle(last created particle, 0.5)
+
+	create new custom dust:
+		count: 1
+		extra: 0.5
+		data: dustOption(rgb(72, 128, 72), 1) 
+	set {_dust::2} to create_particle(last created particle, 1)
+
+	create new custom pale_oak_leaves:
+		count: 1
+		extra: 0.5
+
+	set {_dust::3} to create_particle(last created particle, 0.01)
+
+	create new custom spore_blossom_air:
+		count: 1
+	set {_dust::4} to create_particle(last created particle, 0.05)
+
+	create new custom white_ash:
+		count: 1
+	set {_dust::4} to create_particle(last created particle, 0.25)
+
+	set {_atmo} to atmosphere struct
+	set {_atmo} -> particles to {_dust::*}
+
+	set {-atmosphere} to {_atmo}
+
+function run_atmosphere(p: player, atmosphere: struct):
+	set {_density}  to ({_atmosphere} -> density) * 100 
+	set {_camera_y} to camera_y({_p})
+	
+	if chance of 1/6:
+		sound({_p}, "entity.horse.breathe", 0.01, 1)
+
+	loop floor({_density}) times:
+		set {_i} to loop-counter
+
+		set {_x} to rnd(-20, 20)
+		set {_y} to rnd(-5) + {_camera_y}
+		set {_z} to rnd(-10, 10)
+		
+		set {_pos} to {-char::%{_p}%::entity} ~ vector({_x}, {_y}, {_z})
+		set {_particles::*} to ({_atmosphere} -> particles)
+		set {_random_particle} to random element out of {_particles::*}
+		if chance of ({_random_particle} -> chance):
+			set {_particle::*} to {_random_particle} -> particles
+			draw {_particle::*} at {_pos}
+		if chance of 0.3:
+			create_wind_particle({_pos}, vector(0,0,15))
+
+function create_wind_particle(pos: location, vel: vector):
+	set {_size} to vector(0.4, rnd(1, 2), 1)
+	set pitch of {_pos} to -90
+	set yaw of {_pos} to 0
+	spawn text display at {_pos}:
+		set color of entity to rgb(243, 238, 238, 28)
+		set text of entity to " "
+		set display scale of entity to {_size}
+		set display teleport duration of entity to 30
+		entity.setPersistent(false)
+		set {_wind} to entity
+
+	teleport {_wind} to {_pos} ~ {_vel}
+	wait 30 ticks
+	kill {_wind}

@@ -1,0 +1,26 @@
+# Vec2D constructor
+function vec(x: number, z: number):: vector:
+	return vector({_x}, 0, {_z})
+
+# Location constructor for 2d spaces
+function pos(x: number, y: number, yaw: num = 0, pitch: num = -90):: location:
+	return location({_x}, 0, {_y}, world "_", {_yaw}, {_pitch})
+
+# Returns the middle of the map
+function mid():: location:
+	return pos(0,0)
+
+# Returns the current specific input as a boolean
+function btn(player: player, btn: string) :: boolean:
+	set {_m} to {_player}.getCurrentInput()
+
+	set {_return} to switch return {_btn}:
+		case "a"     -> {_m}.isLeft()
+		case "d"     -> {_m}.isRight()
+		case "w"     -> {_m}.isForward()
+		case "s"     -> {_m}.isBackward()
+		case "space" -> {_m}.isJump()
+		case "sneak" -> {_m}.isSneak()
+		case "ctrl"  -> {_m}.isSprint()
+		default -> false
+	return {_return}

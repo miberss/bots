@@ -1,0 +1,19 @@
+on script load:
+	# HOPPER
+	loadPlayerHead("hopper", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmQzZmU2MzcwNTUyNWIzNjY3N2Q2M2RiZjBkZjViMDE4NWYxMmI4N2I0YWIyODhhMzMwMWQ5MzZlY2E1MzA2MiJ9fX0=")
+	set_stat("hopper", "block", head("hopper"))
+	set_stat("hopper", "scale", 0.9)
+	set_stat("hopper", "health", 5)
+	set_stat("hopper", "damage", 5)
+	set_stat("hopper", "movement_cooldown", 20)
+	set_stat("hopper", "speed", 0.3)
+
+function hopper_movement(p: player, enemy: entity, target: entity, next_node: location):
+	set {_mid} to (vector between {_enemy} and {_next_node}) / 2 + vector(0, metadata "jump" of {_enemy}, 0)
+	set {_points::*} to bezier_curve({_enemy}, {_next_node}, {_enemy} ~ {_mid}, 5)
+	sound({_p}, "entity.slime.jump_small", 0.05, 1) 
+	loop {_points::*}:
+		move({_enemy}, vector between {_enemy} and loop-value)
+		wait 1 tick
+	particle({_enemy}, gust)
+	sound({_p}, "entity.wind_charge.wind_burst", 0.05, 1) 

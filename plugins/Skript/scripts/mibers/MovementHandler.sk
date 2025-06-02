@@ -1,0 +1,240 @@
+function handle_movement(p: player):
+	
+	set {_cam} to {-cam::%{_p}%}
+	set {_char} to {-char::%{_p}%::entity}
+
+	set {_vel} to {-char::%{_p}%::vel}
+
+	
+
+	if btn({_p}, "w") = true:
+		set {_input} to {_input} + vec(0, 1)
+	else if btn({_p}, "s") = true:
+		set {_input} to {_input} + vec(0, -1)
+
+	if btn({_p}, "a") = true:
+		set {_input} to {_input} + vec(1, 0)
+	else if btn({_p}, "d") = true:
+		set {_input} to {_input} + vec(-1, 0)
+	rotate {_input} around vector(0,1,0) by 45
+	# normalize input velocity
+	set {_speed} to {-char::%{_p}%::speed}
+	set {_input} to (normalized {_input}) * vector({_speed}, 0, {_speed})
+
+	# adds input velocity to main velocity
+	add {_input} to {_vel}
+
+	# reset dash if ready, otherwise cooldown
+	if all:
+		btn({_p}, "space") = true
+		metadata "dash" of {_p} >= {-char::%{_p}%::dash_cooldown}
+	then:
+		set {_vel} to {_vel} * 7	
+		particle({_char}, gust, {_}, 1)
+		sound({_p}, "entity.wind_charge.wind_burst", 0.4, 0.6)
+		move_camera({_p}, -3.2)
+		shake_camera({_p}, 5)
+		set metadata "dash" of {_p} to 0
+		run 3 ticks later:
+			move_camera({_p}, 3.2)
+	else:
+		add 1 to (metadata "dash" of {_p})
+
+	# returns pos and floor block
+
+	set {_pos} to {_char}'s location ~ vector(0, 1.1, 0)
+
+	if (vector length of {_vel}) is not 0:
+		set {_world} to {_p}'s world
+		set {_hit} to {_world}.rayTraceBlocks({_pos}, {_vel}, 0.7)
+		# broadcast("%{_hit}%")
+		if {_hit} is set:
+			shake_camera({_p}, vector length of {_vel} * 3)
+			set {_normal} to {_hit}.getHitBlockFace().getDirection() * -1
+			set {_dot} to {_vel} dot {_normal}
+			set {_vel} to normalized {_vel} - 2 * {_dot} * {_normal}
+			#rotate {_vel} around y axis by 90
+			
+
+	# velocity dampening
+	set {_vel} to {_vel} * 0.5
+	if is_fall({_pos}) = true:	
+		fall({_p}, {_cam}, {_char}, {_pos})
+		set metadata "state" of {_p} to "falling" 
+		stop
+
+	set {_step::*} to step({_char} ~ {_vel})
+	set {_pos} to {_step::1}
+	set {_block} to {_step::2}
+	set {-char::%{_p}%::vel} to {_vel}
+
+	# battery pickup stuff
+	
+	set {_id} to metadata "map_id" of {_p}
+	set {_batteries::*} to {-map_batteries::%{_id}%::*}
+	sort {_batteries::*} by distance between input and {_pos}
+	set {_battery} to {_batteries::1}
+	set {_d} to distance between {_pos} and {_battery}
+	if {_d} < 1:
+		pickup_battery({_p}, {_battery})
+
+	# if they are not moving
+	set {_epsilon} to 0.05
+	if (vector length of {_vel}) is not between {_epsilon} * -1 and {_epsilon}:
+		step_effects({_p}, {_pos}, {_block})
+		set yaw of {_pos} to towards({_pos}, {_pos} ~ {_vel})
+		if is_dashing({_p}) = true:
+			particle({_char}, poof, {_}, 2, vector(0.2,0.1,0.2), 0.01)
+			particle({_char}, item, white wool, 20, vector(0.2,0.1,0.2), 0.05)
+
+	update_camera({_p})
+
+	# teleport actual character / entities
+	set metadata "feet" of {_p} to {_pos}
+	teleport {_char} to {_pos}
+	set {_v} to vector between ({_cam} ~ vector(1, camera_y({_p}) * -1, 1)) and {_char}
+	teleport {_cam} to {_cam} ~ {_v} / 2 while retaining passengers
+	# locks camera
+	set {_rotation::*} to camera_rotation({_p})
+	{_p}.setRotation({_rotation::1}, {_rotation::2})
+
+local function fall(p: player, cam: entity, char: entity, pos: location):
+	title({_p}, "<color:#7a4242>YOU FELL.", 15, 2)
+	{_p}.setRotation(0, 90)
+
+	set teleport duration of {_cam} to 5 ticks
+	set teleport duration of {_char} to 5 ticks 
+	wait 1 tick
+	set {_pos} to location of {_pos}
+	set {_cam_pos} to {_pos}
+	set y-coord of {_cam_pos} to y-coord of {_cam}
+	move_camera({_p}, mod_camera_y({_p}) / -5)
+	teleport {_char} to {_pos}
+	teleport {_cam} to {_cam_pos} ~ vector(0, camera_y({_p}) * 0.5, 0) while retaining passengers
+	wait 5 ticks
+	set teleport duration of {_cam} to 10 ticks
+	set teleport duration of {_char} to 10 ticks
+	wait 1 tick
+	teleport {_char} to {_pos} ~ vector(0, -5, 0)
+	teleport {_cam} to {_cam_pos} ~ vector(0, -5, 0) while retaining passengers
+	wait 10 ticks
+	set teleport duration of {_cam} to 2 tick
+	set teleport duration of {_char} to 1 tick
+	wait 1 tick
+	{_cam}.setRotation(0, -90)
+	teleport {-char::%{_p}%::entity} to get_map_center({_p})
+	delete metadata "state" of {_p} 
+	damage_player({_p})
+
+local function is_fall(pos: location):: boolean:
+	set y-coord of {_pos} to -5
+	return whether (block at {_pos}) = blackstone
+
+local function is_dashing(p: player) :: boolean:
+	return whether metadata "dash" of {_p} <= 4
+
+local function step_effects(p: player, pos: location, block: block):
+	
+	# plays particle with floor block
+	particle({_pos}, item, type of {_block}, 5, vector(0.1,0.1,0.1), 0.05)
+	set {_move_color} to rgb(194, 118, 95)
+	set {_count} to 2
+	if is_dashing({_p}) = true:
+		set {_move_color} to rgb(52, 50, 129)
+		set {_count} to 4
+	particle({_pos}, dust_color_transition, dustTransition({_move_color}, rgb(255, 255, 255), {_count} / 2), {_count}, vector(1, 1, 1) * {_count} / 10)
+
+	# counter
+	# if its 0 reset back up
+	if (metadata "step" of {_p} ? 0) is 0:
+		set metadata "step" of {_p} to 4 + rndi(2)
+
+		# play the sounds
+		set {_volume} to 0.1 + rnd(0.1)
+		set {_pitch} to 0.2 + rnd(0.1)
+		sound({_p}, break sound of {_block}, {_volume}, {_pitch})
+		sound({_p}, hit sound of {_block}, {_volume}, {_pitch})
+		
+
+	else:
+		remove 1 from metadata "step" of {_p}
+
+function towards(from: location, to: location) :: number:
+	# gets yaw from l1 to l2
+	set {_dx} to x-coord of {_to} - x-coord of {_from}
+	set {_dz} to z-coord of {_to} - z-coord of {_from}
+	set {_yaw} to atan2({_dx}, {_dz})
+	return {_yaw} - 90
+
+on script load:
+	set {-robot_corners::*} to vec(0.35,0.35), vec(-0.35,0.35), vec(0.35,-0.35), vec(-0.35,-0.35)
+
+# it shoots like 4 rays down at each corner of the entity and 
+# finds the highest hit location and moves the y of entity to that
+local function step(pos: location) :: objects:
+	set {_best_y} to 0
+	set {_y_pos} to y-coord of {_pos}
+
+	loop {-robot_corners::*}:
+		# get go up and to the corner
+		set {_check} to {_pos} ~ ( loop-value + vector(0,5,0) )
+
+		# raytrace DOWN
+		set {_ray} to raytrace from {_check} along vector(0, -1, 0) with max distance 15 while ignoring passable blocks
+
+		set {_y_hit} to y-coord of hit location of {_ray}
+
+		if abs({_y_pos} - {_y_hit}) >= 1.5:
+			continue
+		
+		set {_best_y} to max({_best_y}, {_y_hit})
+	set y-coord of {_pos} to {_best_y}
+	return {_pos}, ray trace hit block of {_ray}
+
+function delete_player(p: player):
+	kill {-char::%{_p}%::entity} and {-cam::%{_p}%}
+	delete {-char::%{_p}%::entity} and {-cam::%{_p}%}
+
+function spawn_player(p: player):
+	# "respawn"
+	delete_player({_p})
+	# set stats
+	set {_p}'s gamemode to adventure
+	set {-char::%{_p}%::attack_cooldown} to 10
+	set {-char::%{_p}%::range} to 20
+	set {-char::%{_p}%::pierce} to 1
+	set {-char::%{_p}%::length} to 10
+	set {-char::%{_p}%::speed} to 0.25
+	set {-char::%{_p}%::camera_y} to 10
+	set {-char::%{_p}%::hp} to 5
+	set {-char::%{_p}%::dash_cooldown} to 25
+	delete metadata "state" of {_p} 
+	set metadata "game_state" of {_p} to "playing"
+
+	set {_spawn} to highest block at {_p} ~ vector(0, 1, 0)
+	set {_scale} to 1.5
+
+	spawn item display at {_spawn}:
+		set display item of entity to head("player")
+		set display scale of entity to vector({_scale},{_scale},{_scale})
+		set display translation of entity to vector(0,{_scale} / 2,0)
+		set display teleport duration of entity to 1
+		entity.setPersistent(false)
+		set {_e} to entity
+
+	set {-char::%{_p}%::entity} to {_e}
+
+	set {_calc_size} to get_size(50)
+	spawn text display at {_spawn} ~ vector(0, 3, 0):
+		# high teleport duration for dampening
+		set display teleport duration of entity to 3
+		set display text of entity to "<#040512>█"
+		set display scale of entity to get_scale({_calc_size})
+		set display translation of entity to get_translation({_calc_size}) + vector(50/-2,50/-2,2)
+		set color of entity to rgb(0,0,0,0)
+		entity.setRotation(0, -90)
+		entity.setPersistent(false)
+		set {_cam} to entity
+	
+	set {-cam::%{_p}%} to {_cam}
+	make {_p} ride {_cam}

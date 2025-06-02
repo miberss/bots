@@ -1,0 +1,53 @@
+every tick:
+    lerp 1 of white ash at location(0, 100, 3) with offset vector(4, 4, 0.5)
+
+on join:
+    set the join message to "<#474056>&o%player% joined"
+    player_menu(player)
+
+function player_menu(p: player):
+    set gamemode of {_p} to adventure
+    teleport {_p} to spawn of world "world"
+    loop 20 times:
+        send "&0" + ("." repeated 21 - loop-value times) to {_p}
+    make {-hidden::*} disappear from {_p}
+    clear {_p}'s inventory
+    apply infinite potion of invisibility of tier 1 without any particles whilst hiding the icon to {_p}
+    spawn text display at location(0.5, 100, 0.5)
+    set {_rider} to last spawned text display
+    make {_p} ride {_rider}
+    while vehicle of {_p} is set:
+        set gamemode of {_p} to adventure if {_p} is not op
+        send action bar " " to {_p}
+        wait 1 tick
+        {_p}.setRotation(0, 0)
+    kill {_rider}
+
+on dismount:
+    if metadata "dismount" of player is not true:
+        cancel event
+
+on swap hand items:
+    metadata "map_id" of player is not set
+    if vehicle of player is a text display:
+        set metadata "dismount" of player to true
+        make player leave their vehicle
+        delete metadata "dismount" of player
+        gamemode of player is not creative
+        wait 3 ticks
+        setup_game(player)
+
+on leave:
+    set leave message to {_}
+    delete_player(player)
+    kill passengers of player
+    kill vehicle of player
+    delete_game(player, false)
+
+on skript stop:
+	loop {-hidden::*}:
+		kill loop-value
+	delete {-hidden::*}
+
+on damage:
+    cancel event

@@ -1,0 +1,11 @@
+function play_music(p: player):
+	if chance of 1/2:
+		sound({_p}, "music.overworld.jagged_peaks")
+	else:
+		sound({_p}, "music.overworld.lush_caves")
+
+command /stop_music:
+	aliases: music, soundoff
+	trigger:
+		stop sound "minecraft:music.overworld.lush_caves" for player
+		stop sound "minecraft:music.overworld.jagged_peaks" for player 

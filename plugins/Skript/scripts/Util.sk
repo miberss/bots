@@ -1,0 +1,34 @@
+function rndi(to: int, from: int = 0):: int:
+	return random integer from {_from} to {_to}
+
+function rnd(to: num, from: num = 0):: num:
+	return random number from {_from} to {_to}
+
+function assert(one: object, two: object, error: string):: boolean:
+	if {_one} != {_two}:
+		print(sm("error", {_error}, ({_one}, {_two})))
+		return false
+	return true
+
+function bezier_curve(pos_1: location, pos_2: location, points: location, n: num) :: locations:
+	
+	# stop if assert(world of {_pos_1}, world of {_pos_2}, "fn bezier_curve's world's do not match. [1], [2]") = false
+		
+	set {_x1} to x-loc of {_pos_1}
+	set {_x2} to x-loc of {_pos_2}
+	set {_y1} to y-loc of {_pos_1}
+	set {_y2} to y-loc of {_pos_2}
+	set {_z1} to z-loc of {_pos_1}
+	set {_z2} to z-loc of {_pos_2}
+	
+	set {_x3} to x-loc of {_points}
+	set {_y3} to y-loc of {_points}
+	set {_z3} to z-loc of {_points}
+	
+	loop {_n} times:
+		set {_t} to loop-value / {_n}
+		set {_x} to (1 - {_t})^2 * {_x1} + 2 * (1 - {_t}) * {_t} * {_x3} + {_t}^2 * {_x2}
+		set {_y} to (1 - {_t})^2 * {_y1} + 2 * (1 - {_t}) * {_t} * {_y3} + {_t}^2 * {_y2}
+		set {_z} to (1 - {_t})^2 * {_z1} + 2 * (1 - {_t}) * {_t} * {_z3} + {_t}^2 * {_z2}
+		set {_ret::%loop-value%} to location({_x}, {_y}, {_z}, world of {_pos_1})
+	return {_ret::*}

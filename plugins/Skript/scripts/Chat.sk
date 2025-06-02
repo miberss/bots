@@ -1,0 +1,5 @@
+on chat:
+    if player is op:
+        set the chat format to "<#B9C6AE>%player% 🧪 ⏵ <#757083>%message%"
+    else:
+        set the chat format to "<#8A95A5>%player% ⏵ <#757083>%message%"

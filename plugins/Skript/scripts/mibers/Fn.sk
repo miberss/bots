@@ -1,0 +1,4 @@
+using script reflection
+
+function fn(function_name: string):: function:
+	return (function named {_function_name})

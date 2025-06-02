@@ -1,0 +1,33 @@
+on script load:
+    #generate_void(location(-68,0,24, world("bots")))
+    kill ({-void::*} mapped with (input parsed as entity))
+    delete {-void::*}
+    #loop 10 times:
+        #generate_void(location(1000*loop-value, 0, 0))
+
+function generate_void(top: location, id: integer):
+    loop 25 times:
+        create_plate({_top}, (((loop-counter) ^ 1.1) / 10) - 3.6, 170, -90, {_id})
+
+function create_plate(location: location, offset: number, size: number, pitch: number = -90, id: integer):
+    suppress variable save warnings
+    set pitch of {_location} to {_pitch}
+    set {_calc_size} to get_size({_size})
+    spawn text display at {_location}:
+        set display scale of entity to get_scale({_calc_size})
+        set display translation of entity to get_translation({_calc_size}) + vector({_size}/-2,{_size}/-2,{_offset})
+        set text opacity of entity to 26
+        set display text of entity to "<#020210>█"
+        set color of entity to rgb(0,0,0,0)
+        entity.setPersistent(false)
+        set {-void::%entity's uuid%} to entity's uuid
+        add entity to {-map_void::%{_id}%::*}
+
+function get_size(size: number):: number:
+    return {_size} * 5
+
+function get_translation(size: number):: vector:
+    return vector({_size} / 11.419, {_size} / -40, 0)
+
+function get_scale(scale: number):: vector:
+    return vector({_scale}, {_scale}, 1)

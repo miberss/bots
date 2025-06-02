@@ -1,0 +1,80 @@
+using for loops
+
+on script load:
+	# ARCHER DRONE
+	loadPlayerHead("archer", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWQ5NTIwMDE0ODM1OTljODFiNDdiNTA0MjIxMzI1M2Q3YjgyNmRjMjllNDAyZDZhNDI2ZmFiODg1OGMyN2E0NCJ9fX0=")
+	set_stat("archer", "block", head("archer"))
+	set_stat("archer", "scale", 0.9)
+	set_stat("archer", "health", 10)
+	set_stat("archer", "damage", 3)
+	set_stat("archer", "speed", 0.3)
+	set_stat("archer", "attack_cooldown", 25)
+	set_stat("archer", "attack_range", 10)
+	set_stat("archer", "movement_cooldown", 5)
+	create a new custom dust particle with:
+		count: 1
+		extra: 0
+		data: dustOption(light blue, 1)
+	set_stat("archer", "particle_1", last created particle)
+	create a new custom enchanted hit particle with:
+		count: 1
+		extra: 0.1
+	set_stat("archer", "particle_2", last created particle)
+
+function archer_attack(p: player, enemy: entity, target: entity):
+
+	sound({_p}, "entity.witch.throw", 1, 0.5)
+
+	set {_between} to (vector between {_enemy} and {_target} / 2) + vector(0, 5, 0)
+
+	spawn text display at {_enemy}:
+		set display teleport duration of entity to 1
+		set color of entity to rgb(0,0,0,0)
+		set display text opacity of entity to 100 
+		set display text of entity to "<#000000>⏺"
+		entity.setPersistent(false)
+		set {_shadow} to entity
+
+	set {_velocity} to {-char::%{_p}%::vel}
+	set {_prediction} to {_target} ~ {_velocity} * 15 + vec(rnd(-1, 1), rnd(-1, 1))
+	set {_points::*} to bezier_curve({_enemy}, {_prediction}, {_enemy} ~ {_between}, 20)
+
+	set {_circle} to circle with radius rnd(0.4,0.6)
+	draw the shape {_circle} at last element of {_points::*}:
+		set event-shape's particle count to 50
+		set event-shape's particle to get_stat("archer", "particle_1")
+	
+	for {_point} in {_points::*}:
+		
+		if distance between {_point} and {_target} < 0.6:
+			damage_player({_p})
+
+		draw get_stat("archer", "particle_1") at {_point}
+		draw get_stat("archer", "particle_2") at {_point}
+		
+		sound({_p}, "entity.horse.breathe", 0.05, 1, {_point})
+		set {_ray} to raytrace from {_point} along vector(0, -1, 0) with max distance 5 while ignoring passable blocks
+		set {_hit} to hit location of {_ray}
+
+		set {_shadow_radius} to get_shadow_radius(y-coord of {_point}, y-coord of {_hit})
+		set display scale of {_shadow} to vector(1,1,1) * {_shadow_radius} * 10
+
+		teleport {_shadow} to {_hit} ~ vector(0,0.1,0)
+		{_shadow}.setRotation(0, -90)
+		
+		wait 1 tick
+
+	kill {_shadow}	
+
+local function get_shadow_radius(x: number, y: number):: number:
+	# The difference between x and y, sqrted and divided by 10
+	# Basically a part of the distance between the ground and the point I assume.
+	return sqrt( abs({_x} - {_y}) ) / 7
+
+function archer_movement(p: player, enemy: entity, target: entity, next_node: location):
+	if is_within({_enemy}, {_target}) = false:
+	
+		set {_velocity} to vector between {_enemy} and {_next_node}
+		set vector length of {_velocity} to get_speed({_enemy})
+		move({_enemy}, {_velocity})
+	

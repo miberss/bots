@@ -1,0 +1,103 @@
+function create_battery(pos: location) :: entity:
+	spawn item display at {_pos}:
+		set display scale of entity to vector(0.75, 0.3, 0.3)
+		set display interpolation duration of entity to 1
+		set display item of entity to ochre froglight
+		set shadow radius of entity to 0.3
+		set shadow strength of entity to 2
+		entity.setPersistent(false)
+		set {_battery} to entity
+	set metadata "spawn" of {_battery} to {_pos}
+	set metadata "id" of {_battery} to "battery"
+	set metadata "rot" of {_battery} to normalized vector(rndi(1000), rndi(1000), rndi(1000))
+	set {-batteries::%{_battery}%} to {_battery}
+	return {_battery}
+
+function refresh_all_batteries():
+	loop {-batteries::*}:
+		create_battery(loop-value)
+		kill loop-value
+		delete {-batteries::%loop-value%}
+
+function battery_movement(battery: entity):
+	set {_up} to sin({-time} * 5) / 5
+	# z because rotated
+	set {_trans} to vector(0, {_up}, 0)
+
+	set display translation of {_battery} to {_trans}
+	set display interpolation start of {_battery} to 0
+	set display interpolation duration of {_battery} to 1
+
+	set {_delta} to vector(1, 0, 1) * 0.15
+	set {_pos} to {_battery} ~ {_trans}
+	if chance of 1/2:
+		particle({_pos}, electric spark, {_}, 1, {_delta}, 0.05)
+	particle({_pos}, dust, dustOption(rgb(248, 185, 91), 0.7), 1, {_delta}, 0.2)
+
+	rotate {_battery} around (metadata "rot" of {_battery}) by 1
+	wait 1 tick
+
+function spawn_map_batteries(id: integer):
+	loop {-map_batteries::%{_id}%::*}:
+		kill loop-value
+	delete {-map_batteries::%{_id}%::*}
+	set {_center} to location({_id}*1000, 0, 0)
+	set {_l::*} to {battery_spawn_locations::*}
+	loop 20 times:
+		set {_v} to random element out of {_l::*}
+		remove {_v} from {_l::*}
+		set {_v} to {_v}+vector(0, 0.5, 0)
+		set {_battery} to create_battery({_center}~{_v})
+		add {_battery} to {-map_batteries::%{_id}%::*}
+
+function spawn_random_battery(id: integer, filter: locations = {_}):
+	set {_center} to location({_id} * 1000, 0, 0)
+	set {_copy_spawn::*} to {battery_spawn_locations::*}
+	remove {_filter::*} from {_copy_spawn::*}
+	set {_offset} to (random element out of {_copy_spawn::*} + vector(0, 0.5, 0))
+	set {_battery} to create_battery({_center} ~ {_offset})
+	add {_battery} to {-map_batteries::%{_id}%::*}
+
+function pickup_battery(p: player, battery: entity):
+	set {_id} to metadata "map_id" of {_p}
+	set {_spawn} to metadata "spawn" of {_battery}
+	remove {_battery} from {-map_batteries::%{_id}%::*}
+	kill {_battery}
+	sound({_p}, "minecraft:block.copper_bulb.hit")
+	set {_rnd} to rndi(0, 100)
+
+	print(sm("info", "[1] picked up a battery with {2}", ({_p}, {_rnd})))
+
+	if {_rnd} is between -1 and 15:
+		set {-char::%{_p}%::speed} to {-char::%{_p}%::speed} + 0.01
+		set {_change} to round(0.02 / {-char::%{_p}%::speed} * 100, 1)
+		set {_message} to "<#B9C6AE>&lUPGRADE! &8| <#8A95A5>+%{_change}%%% Speed"
+	else if {_rnd} is between 15 and 40:
+		set {-char::%{_p}%::dash_cooldown} to {-char::%{_p}%::dash_cooldown} - 0.5
+		set {_change} to round(-0.5 / {-char::%{_p}%::dash_cooldown} * 100, 1)
+		set {_message} to "<#B9C6AE>&lUPGRADE! &8| <#8A95A5>%{_change}%%% Dash Cooldown"
+	else if {_rnd} is between 40 and 60:
+		set {-char::%{_p}%::hp} to {-char::%{_p}%::hp} + 1
+		set {_message} to "<#B9C6AE>&lUPGRADE! &8| <#8A95A5>+1 Health"
+	else if {_rnd} is between 60 and 70:
+		set {-char::%{_p}%::length} to {-char::%{_p}%::length} + 5
+		set {_message} to "<#B9C6AE>&lUPGRADE! &8| <#8A95A5>+1 Bullet Travel"
+	else if {_rnd} is between 80 and 90:
+		set {-char::%{_p}%::pierce} to {-char::%{_p}%::pierce} + 1
+		set {_message} to "<#B9C6AE>&lUPGRADE! &8| <#8A95A5>+1 Pierce"
+	else if {_rnd} is between 90 and 101:
+		set {-char::%{_p}%::attack_cooldown} to {-char::%{_p}%::attack_cooldown} - 1
+		set {_message} to "<#B9C6AE>&lUPGRADE! &8| <#8A95A5>-1 Attack cooldown"
+	send {_message} to {_p}
+	print({_message})
+	set {_sm} to sm("info", "[1] picked up a battery with {2}", ({_p}, {_rnd}))
+	print({_sm})
+	if chance of 3/4:
+		spawn_random_battery({_id}, ({_spawn}))
+
+command /addBatterySpawnLocation:
+	permission: op
+	trigger:
+		set {_v} to vector between location(-67.5, 0.5, 24.5, world "bots") and block at player
+		add {_v} to {battery_spawn_locations::*}
+		send "added %{_v}%"

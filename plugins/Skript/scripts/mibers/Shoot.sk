@@ -1,0 +1,39 @@
+function run_shoot(p: player):
+	if metadata "attack_cooldown" of {_p} >= 0:
+		remove 1 from metadata "attack_cooldown" of {_p}
+		stop
+	if metadata "closest_enemy" of {_p} is not set:
+		stop
+	sound({_p}, "block.dispenser.dispense", 0.3, 2)
+	sound({_p}, "block.note_block.hat", 0.2, 1.2)
+	set {_char} to {-char::%{_p}%::entity}
+	set {_target_pos} to metadata "feet" of {_p}
+	set {_enemy} to metadata "closest_enemy" of {_p}
+	set {_towards} to vector from {_target_pos} to {_enemy} ~ random vector
+	set y of {_towards} to 0
+	set {_towards} to (normalized {_towards}) / 2
+	set {_bullet} to {_target_pos} 
+	set metadata "attack_cooldown" of {_p} to {-char::%{_p}%::attack_cooldown}
+	shake_camera({_p}, rnd(0.2, 1))
+	loop {-char::%{_p}%::length} times:
+		set {_bullet} to {_bullet} ~ {_towards}
+		loop (item displays in radius 1 of {_bullet}) where [metadata "movement_cooldown" of input is set]:
+			set {_pierced} to {_pierced} + 1
+			if {_pierced} <= {-char::%{_p}%::pierce}:
+				remove 1 from metadata "hp" of {_enemy}
+				if metadata "hp" of {_enemy} <= 0:
+					kill_enemy({_p}, loop-value-2)
+				else:
+					sound({_p}, "entity.iron_golem.hurt", 0.05, 1.5)
+					sound({_p}, "block.iron_door.close", 0.05, 2)
+					set {_offset} to random vector * 0.3
+					set {_sphere} to sphere with radius rnd(0.7,0.9)
+					draw the shape {_sphere} at {_enemy}'s location ~ {_offset}:
+						set event-shape's particle count to 50
+						set event-shape's particle to {-destroy_particle::1}
+			else:
+				exit 2 loops
+		
+		particle({_bullet}, dust_color_transition, dustTransition(rgb(245, 99, 99),rgb(247, 212, 58), 1.5))
+		wait 1 tick
+	

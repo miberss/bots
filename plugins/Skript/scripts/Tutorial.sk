@@ -1,0 +1,9 @@
+command /intro:
+    aliases: what_to_do, tutorial
+    trigger:
+        send_dialogue(player, "tutorial")
+
+on join:
+    if {joined::%player%} is not set: 
+        set {joined::%player%} to player
+        send_dialogue(player, "tutorial")

@@ -1,0 +1,15 @@
+
+on script load:
+    loadPlayerHead("player", "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTBiOTM1MWY0Mzc3NmUwZjU4M2JkMDc1ZWIwODlkNGQ1Zjc5ZDUyYjA4NTdjZTc1MWYzOTRjMGY4OTI1OTFiOCJ9fX0=")
+
+function playerHead(texture: string) :: item:
+    set {_i::*} to uuid int array 
+    set {_nbt} to nbt from "{""minecraft:profile"":{id:[I;%{_i::1}%,%{_i::2}%,%{_i::3}%,%{_i::4}%],properties:[{name:""textures"",value:""%{_texture}%""}]}}"
+    return player head with nbt {_nbt}
+
+function loadPlayerHead(id: string, texture: string):
+    set {-head::%{_id}%::texture} to {_texture}
+    set {-head::%{_id}%::item} to playerHead({_texture})
+
+function head(id: string):: item:
+    return {-head::%{_id}%::item}

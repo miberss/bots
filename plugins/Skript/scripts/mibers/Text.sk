@@ -1,0 +1,99 @@
+using for loops
+using script reflection
+
+options:
+	default_wait: 1 tick
+
+local function set_delay(letter: string, delay: integer):
+	set {-punctuation::%{_letter}%} to timespan({_delay}, tick)
+
+on script load:
+	set_delay(",", 3)
+	set_delay("!", 4)
+	set_delay("?", 7)
+	set_delay(";", 5)
+	set_delay(".", 7)
+	set_delay(" ", 2)
+	new string joined with nl stored in {_dialogue}:
+		"The fighting doesn’t stop."
+		"The factories don’t sleep."
+		"And no one remembers why."
+		"The humans are long gone."
+		"Continue the war without question."
+		"Space: DASH,"
+		"Autoshoot: ON,"
+		"Collect Batteries to upgrade."
+		"Survive till wave 20, and you're out of here."
+		"Good luck..."
+	run function create_dialogue:
+		id: "tutorial"
+		text: {_dialogue}
+
+function create_dialogue(id: string,text: string):
+	loop {_text} split at nl:
+		set {-dialogue::%{_id}%::%loop-counter%} to loop-value
+
+function send_dialogue(player: player, id: string):
+	loop {-dialogue::%{_id}%::*}:
+		set {_delay} to get_delay(loop-value)
+		slow_text({_player}, loop-value, fn("tutorial_text"))
+		wait {_delay} + 10 ticks
+
+
+
+function get_delay(message: string):: timespan:
+	set {_delay} to 0 ticks
+	set {_message::*} to {_message} split at ""
+	for {_letter} in {_message::*}:
+		add ({-punctuation::%{_letter}%} ? {@default_wait}) to {_delay}
+	return {_delay}
+
+function slow_text(player: player, message: string, message_function: function):
+	set {_message::*} to {_message} split at ""
+	set {_sent_message} to ""
+	for {_letter} in {_message::*}:
+		set {_delay} to {-punctuation::%{_letter}%} ? {@default_wait}
+		set {_size} to loop-counter / size of {_message::*}
+		run {_message_function} with args {_player}, "<transition:#757083:#B9C6AE:#757083:%{_size}%>%{_sent_message}%"
+		set {_sent_message} to {_sent_message} + "%{_letter}%"
+			
+		wait {_delay}
+
+function tutorial_text(player: player, message: string):
+	sound({_player}, "block.note_block.bit", 0.05, 0.6 + random number between -0.05 and 0.05)
+	sound({_player}, "block.note_block.iron_xylophone", 0.05, 0.6 + random number between -0.05 and 0.05)
+	if chance of 10%:
+		sound({_player}, "entity.zombie.attack_iron_door", 0.01, 0.5)
+	set {_message} to "<shadow:#000000:1>%{_message} in uppercase%"
+	subtitle({_player}, {_message})
+	title({_player}, "<shadow:#000000:1><color:#7a4242>TUTORIAL")
+
+function format(string: string) :: text component:
+    # TODO
+	set {_component} to minimessage from {_string}
+	set bold format of {_component} to true 
+	return {_component}
+
+function send(player: player, message: string):
+    send format({_message}) to {_player}
+
+function actionbar(player: player, message: string):
+    send actionbar component format({_message}) to {_player}
+
+function subtitle(player: player, message: string):
+	send title component "" with subtitle component format({_message}) to {_player} with fadein 0 ticks with fadeout 5 ticks
+
+function title(player: player, message: string, for: integer = 20, fadein: integer = 0, fadeout: integer = 5):
+    send title format({_message}) to {_player} for timespan({_for}, ticks) with fadein timespan({_fadein}, ticks) with fadeout timespan({_fadeout}, ticks)
+
+function broadcast(message: string):
+    broadcast format({_message})
+
+function print(message: string):
+	send {_message} to console
+
+function sound(player: player, sound: string, volume: number = 1, pitch: number = 1, at: location = {_}):
+	if {_at} is set:
+		play sound "minecraft:%{_sound}%" in master category at volume {_volume} and pitch {_pitch} to {_player} at {_at}
+	else:
+		play sound "minecraft:%{_sound}%" in master category at volume {_volume} and pitch {_pitch} to {_player}
